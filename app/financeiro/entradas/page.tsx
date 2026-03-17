@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { db } from "@/lib/firebase";
+import { auth } from "@/lib/auth"; // ✅ CORRETO AQUI
 import {
   addDoc,
   collection,
@@ -35,16 +36,21 @@ alert("Selecione a categoria");
 return;
 }
 
+// 🔥 VERIFICA SE ESTÁ LOGADO
+if(!auth.currentUser){
+alert("Usuário não está logado");
+return;
+}
+
 try{
 
 await addDoc(collection(db,"transacoes"),{
-
-tipo:"entrada",
-categoria,
-descricao,
-valor:Number(valor),
-createdAt:serverTimestamp()
-
+  tipo:"entrada", // ✅ CORRIGIDO
+  valor:Number(valor),
+  categoria,
+  descricao,
+  userId: auth.currentUser.uid,
+  createdAt: serverTimestamp()
 });
 
 alert("Entrada registrada");
@@ -70,8 +76,6 @@ return(
 Registrar Entrada
 </h1>
 
-{/* CATEGORIA */}
-
 <select
 className="w-full p-2 mb-3 rounded bg-[#0B0F1A] border border-gray-700"
 value={categoria}
@@ -88,16 +92,12 @@ onChange={(e)=>setCategoria(e.target.value)}
 
 </select>
 
-{/* DESCRIÇÃO */}
-
 <input
 className="w-full p-2 mb-3 rounded bg-[#0B0F1A] border border-gray-700"
 placeholder="Descrição"
 value={descricao}
 onChange={(e)=>setDescricao(e.target.value)}
 />
-
-{/* VALOR */}
 
 <input
 type="number"
@@ -106,8 +106,6 @@ placeholder="Valor"
 value={valor}
 onChange={(e)=>setValor(e.target.value)}
 />
-
-{/* BOTÃO */}
 
 <button
 onClick={salvar}

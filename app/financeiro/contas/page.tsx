@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
+import { auth } from "@/lib/auth";
 import {
 collection,
 addDoc,
 getDocs,
 updateDoc,
 deleteDoc,
-doc
+doc,
+query,
+where,
+increment
 } from "firebase/firestore";
 
 export default function Contas(){
@@ -21,6 +25,8 @@ const [prazo,setPrazo] = useState("");
 const [contas,setContas] = useState<any[]>([]);
 const [valoresEntrada,setValoresEntrada] = useState<any>({});
 
+/* SALVAR */
+
 async function salvar(){
 
 if(!nome){
@@ -28,12 +34,20 @@ alert("Digite o nome da conta");
 return;
 }
 
+if(!auth.currentUser){
+alert("Usuário não logado");
+return;
+}
+
 await addDoc(collection(db,"contas"),{
 
-nome:nome,
+nome,
 saldo:Number(saldoInicial) || 0,
 meta:Number(meta) || 0,
-prazo:Number(prazo) || 12
+prazo:Number(prazo) || 12,
+
+// 🔥 MULTIUSUÁRIO
+userId: auth.currentUser.uid
 
 });
 
@@ -46,6 +60,8 @@ carregar();
 
 }
 
+/* ADICIONAR DINHEIRO */
+
 async function adicionarEntrada(conta:any){
 
 const valor = Number(valoresEntrada[conta.id] || 0);
@@ -56,7 +72,10 @@ return;
 }
 
 await updateDoc(doc(db,"contas",conta.id),{
-saldo:(Number(conta.saldo) || 0) + valor
+
+// 🔥 MELHOR FORMA (evita erro)
+saldo: increment(valor)
+
 });
 
 setValoresEntrada({
@@ -68,6 +87,8 @@ carregar();
 
 }
 
+/* EXCLUIR */
+
 async function excluirConta(id:string){
 
 if(!confirm("Excluir essa conta?")) return;
@@ -78,19 +99,26 @@ carregar();
 
 }
 
+/* CARREGAR (🔥 FILTRADO) */
+
 async function carregar(){
 
-const snapshot = await getDocs(collection(db,"contas"));
+if(!auth.currentUser) return;
+
+const q = query(
+collection(db,"contas"),
+where("userId","==",auth.currentUser.uid)
+);
+
+const snapshot = await getDocs(q);
 
 const lista:any[] = [];
 
 snapshot.forEach((docItem)=>{
-
 lista.push({
 id:docItem.id,
 ...docItem.data()
 });
-
 });
 
 setContas(lista);
@@ -174,20 +202,13 @@ faltante > 0
 
 return(
 
-<div
-key={conta.id}
-className="bg-[#111827] p-6 rounded-xl"
->
+<div key={conta.id} className="bg-[#111827] p-6 rounded-xl">
 
-<h2 className="text-lg mb-1">
-{conta.nome}
-</h2>
+<h2 className="text-lg mb-1">{conta.nome}</h2>
 
 <p className="text-gray-400 mb-2">
 Saldo: R$ {saldo.toFixed(2)}
 </p>
-
-{/* META */}
 
 {metaConta > 0 && (
 
@@ -202,95 +223,37 @@ Prazo: {prazoConta} meses
 </p>
 
 <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
-
 <div
-className="bg-purple-500 h-3 rounded-full transition-all"
+className="bg-purple-500 h-3 rounded-full"
 style={{width:`${progresso}%`}}
 />
-
 </div>
 
 <p className="text-xs text-gray-400 mb-2">
 {progresso.toFixed(1)}% da meta
 </p>
 
-{/* IA FINANCEIRA */}
-
 {saldo < metaConta && (
-
 <>
-
 <p className="text-yellow-400 text-sm">
 Faltam: R$ {faltante.toFixed(2)}
 </p>
 
 <p className="text-purple-400 text-xs mb-3">
-IA financeira: guarde R$ {valorMensal.toFixed(2)} por mês para atingir a meta
+Guarde R$ {valorMensal.toFixed(2)}/mês
 </p>
-
 </>
-
 )}
 
 {saldo >= metaConta && (
-
 <p className="text-green-400 text-sm mb-3">
 🎉 Meta atingida!
 </p>
-
 )}
 
 </>
 
 )}
-
-{/* IA INVESTIMENTO */}
-
-{saldo < metaConta && (
-
-<>
-
-{(() => {
-
-const taxa = 0.01; // 1% ao mês
-
-const faltante = metaConta - saldo;
-
-const meses = prazoConta;
-
-const valorMensalSimples = faltante / meses;
-
-const valorMensalInvestindo =
-valorMensalSimples * (1 - taxa * meses * 0.5);
-
-return(
-
-<div className="mt-2">
-
-<p className="text-blue-400 text-xs">
-IA investimento:
-</p>
-
-<p className="text-blue-300 text-xs">
-Com rendimento de 1% ao mês você poderia guardar aproximadamente
-R$ {valorMensalInvestindo.toFixed(2)} por mês
-</p>
-
-<p className="text-gray-400 text-xs">
-Isso reduz seu esforço mensal usando juros compostos.
-</p>
-
-</div>
-
-)
-
-})()}
-
-</>
-
-)}
-
-{/* ADICIONAR DINHEIRO */}
 
 <div className="flex gap-3 mb-3">
 

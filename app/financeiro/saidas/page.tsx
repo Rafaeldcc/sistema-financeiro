@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { db } from "@/lib/firebase";
+import { auth } from "@/lib/auth";
 import {
 addDoc,
 collection,
@@ -14,7 +15,6 @@ const [categoria,setCategoria] = useState("");
 const [descricao,setDescricao] = useState("");
 const [valor,setValor] = useState("");
 
-// NOVOS
 const [parcelado,setParcelado] = useState(false);
 const [parcelas,setParcelas] = useState(1);
 
@@ -46,6 +46,12 @@ alert("Selecione a categoria");
 return;
 }
 
+// 🔥 PROTEÇÃO
+if(!auth.currentUser){
+alert("Usuário não está logado");
+return;
+}
+
 try{
 
 const valorNumero = Number(valor);
@@ -58,16 +64,19 @@ const valorParcela = valorNumero / parcelas;
 
 for(let i = 0; i < parcelas; i++){
 
-const data = new Date();
-data.setMonth(data.getMonth() + i);
-
 await addDoc(collection(db,"transacoes"),{
 
 tipo:"saida",
 categoria,
 descricao: `${descricao} (${i+1}/${parcelas})`,
 valor:valorParcela,
-createdAt:data,
+
+// 🔥 IMPORTANTE
+userId: auth.currentUser.uid,
+
+// 🔥 DATA FUTURA (mantemos Date mesmo)
+createdAt: new Date(new Date().setMonth(new Date().getMonth() + i)),
+
 parcelado:true
 
 });
@@ -86,10 +95,13 @@ tipo:"saida",
 categoria,
 descricao,
 valor:valorNumero,
+
+userId: auth.currentUser.uid,
+
 createdAt:serverTimestamp(),
 
 recorrente:true,
-tipoRecorrencia, // mensal, semanal, anual
+tipoRecorrencia
 
 });
 
@@ -105,6 +117,9 @@ tipo:"saida",
 categoria,
 descricao,
 valor:valorNumero,
+
+userId: auth.currentUser.uid,
+
 createdAt:serverTimestamp()
 
 });
@@ -137,8 +152,6 @@ return(
 Registrar Saída
 </h1>
 
-{/* CATEGORIA */}
-
 <select
 className="w-full p-2 mb-3 rounded bg-[#0B0F1A] border border-gray-700"
 value={categoria}
@@ -154,16 +167,12 @@ onChange={(e)=>setCategoria(e.target.value)}
 
 </select>
 
-{/* DESCRIÇÃO */}
-
 <input
 className="w-full p-2 mb-3 rounded bg-[#0B0F1A] border border-gray-700"
 placeholder="Descrição"
 value={descricao}
 onChange={(e)=>setDescricao(e.target.value)}
 />
-
-{/* VALOR */}
 
 <input
 type="number"
@@ -173,26 +182,20 @@ value={valor}
 onChange={(e)=>setValor(e.target.value)}
 />
 
-{/* PARCELAMENTO */}
+{/* PARCELADO */}
 
 <div className="mb-3">
-
 <label className="flex items-center gap-2 text-gray-300">
-
 <input
 type="checkbox"
 checked={parcelado}
 onChange={(e)=>setParcelado(e.target.checked)}
 />
-
 Compra parcelada
-
 </label>
-
 </div>
 
 {parcelado && (
-
 <input
 type="number"
 className="w-full p-2 mb-3 rounded bg-[#0B0F1A] border border-gray-700"
@@ -200,29 +203,22 @@ placeholder="Número de parcelas"
 value={parcelas}
 onChange={(e)=>setParcelas(Number(e.target.value))}
 />
-
 )}
 
-{/* RECORRÊNCIA */}
+{/* RECORRENTE */}
 
 <div className="mb-3">
-
 <label className="flex items-center gap-2 text-gray-300">
-
 <input
 type="checkbox"
 checked={recorrente}
 onChange={(e)=>setRecorrente(e.target.checked)}
 />
-
 Cobrança recorrente
-
 </label>
-
 </div>
 
 {recorrente && (
-
 <select
 className="w-full p-2 mb-4 rounded bg-[#0B0F1A] border border-gray-700"
 value={tipoRecorrencia}
@@ -232,10 +228,7 @@ onChange={(e)=>setTipoRecorrencia(e.target.value)}
 <option value="semanal">Semanal</option>
 <option value="anual">Anual</option>
 </select>
-
 )}
-
-{/* BOTÃO */}
 
 <button
 onClick={salvar}

@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+/* CORES BASE */
+
+:root {
+  --background: #0B0F1A;
+  --foreground: #ffffff;
+}
+
+/* TEMA */
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* INPUTS */
+
+input {
+  color: white;
+}
+
+input::placeholder {
+  color: #9ca3af;
+}
+
+/* TABELAS */
+
+table {
+  color: white;
+  width: 100%;
+}
+
+th {
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+/* TEXTOS */
+
+h1, h2, h3 {
+  color: white;
+  font-weight: 600;
+}
+
+/* SCROLLBAR BONITA */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B0F1A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4B5563;
+}

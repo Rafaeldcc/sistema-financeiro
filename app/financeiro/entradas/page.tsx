@@ -2,120 +2,143 @@
 
 import { useState } from "react";
 import { db } from "@/lib/firebase";
-import { auth } from "@/lib/auth"; // ✅ CORRETO AQUI
-import {
-  addDoc,
-  collection,
-  serverTimestamp
-} from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-export default function Entradas(){
+import { useUser } from "@/lib/useUser";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-const [categoria,setCategoria] = useState("");
-const [descricao,setDescricao] = useState("");
-const [valor,setValor] = useState("");
+export default function Entradas() {
 
-const categoriasEntrada = [
-"Salário",
-"Extra",
-"Investimentos",
-"Freelance",
-"Venda",
-"Outros"
-];
+  const router = useRouter();
+  const { user, loading } = useUser();
 
-async function salvar(){
+  const [categoria, setCategoria] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [valor, setValor] = useState("");
 
-if(!valor){
-alert("Digite o valor");
-return;
-}
+  const categoriasEntrada = [
+    "Salário",
+    "Extra",
+    "Investimentos",
+    "Freelance",
+    "Venda",
+    "Outros"
+  ];
 
-if(!categoria){
-alert("Selecione a categoria");
-return;
-}
+  // ===============================
+  // PROTEÇÃO DE ROTA
+  // ===============================
 
-// 🔥 VERIFICA SE ESTÁ LOGADO
-if(!auth.currentUser){
-alert("Usuário não está logado");
-return;
-}
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading]);
 
-try{
+  if (loading) {
+    return <p>Carregando...</p>;
+  }
 
-await addDoc(collection(db,"transacoes"),{
-  tipo:"entrada", // ✅ CORRIGIDO
-  valor:Number(valor),
-  categoria,
-  descricao,
-  userId: auth.currentUser.uid,
-  createdAt: serverTimestamp()
-});
+  if (!user) {
+    return null;
+  }
 
-alert("Entrada registrada");
+  // ===============================
+  // SALVAR
+  // ===============================
 
-setCategoria("");
-setDescricao("");
-setValor("");
+  async function salvar() {
 
-}catch(e){
+    if (!valor) {
+      alert("Digite o valor");
+      return;
+    }
 
-console.error(e);
-alert("Erro ao salvar entrada");
+    if (!categoria) {
+      alert("Selecione a categoria");
+      return;
+    }
 
-}
+    try {
 
-}
+      await addDoc(collection(db, "transacoes"), {
+        tipo: "entrada",
+        valor: Number(valor),
+        categoria,
+        descricao,
+        userId: user.uid,
+        createdAt: serverTimestamp()
+      });
 
-return(
+      alert("Entrada registrada com sucesso");
 
-<div className="max-w-xl">
+      setCategoria("");
+      setDescricao("");
+      setValor("");
 
-<h1 className="text-2xl font-bold mb-6">
-Registrar Entrada
-</h1>
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao salvar entrada");
+    }
+  }
 
-<select
-className="w-full p-2 mb-3 rounded bg-[#0B0F1A] border border-gray-700"
-value={categoria}
-onChange={(e)=>setCategoria(e.target.value)}
->
+  // ===============================
+  // UI
+  // ===============================
 
-<option value="">Selecione a categoria</option>
+  return (
 
-{categoriasEntrada.map((c)=>(
-<option key={c} value={c}>
-{c}
-</option>
-))}
+    <div className="max-w-xl">
 
-</select>
+      <h1 className="text-2xl font-bold mb-6">
+        Registrar Entrada
+      </h1>
 
-<input
-className="w-full p-2 mb-3 rounded bg-[#0B0F1A] border border-gray-700"
-placeholder="Descrição"
-value={descricao}
-onChange={(e)=>setDescricao(e.target.value)}
-/>
+      {/* CATEGORIA */}
 
-<input
-type="number"
-className="w-full p-2 mb-4 rounded bg-[#0B0F1A] border border-gray-700"
-placeholder="Valor"
-value={valor}
-onChange={(e)=>setValor(e.target.value)}
-/>
+      <select
+        className="w-full p-2 mb-3 rounded bg-[#0B0F1A] border border-gray-700"
+        value={categoria}
+        onChange={(e) => setCategoria(e.target.value)}
+      >
+        <option value="">Selecione a categoria</option>
 
-<button
-onClick={salvar}
-className="bg-green-600 px-5 py-2 rounded hover:bg-green-700 transition"
->
-Salvar Entrada
-</button>
+        {categoriasEntrada.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
 
-</div>
+      {/* DESCRIÇÃO */}
 
-);
+      <input
+        className="w-full p-2 mb-3 rounded bg-[#0B0F1A] border border-gray-700"
+        placeholder="Descrição"
+        value={descricao}
+        onChange={(e) => setDescricao(e.target.value)}
+      />
 
+      {/* VALOR */}
+
+      <input
+        type="number"
+        className="w-full p-2 mb-4 rounded bg-[#0B0F1A] border border-gray-700"
+        placeholder="Valor"
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+      />
+
+      {/* BOTÃO */}
+
+      <button
+        onClick={salvar}
+        className="bg-green-600 px-5 py-2 rounded hover:bg-green-700 transition"
+      >
+        Salvar Entrada
+      </button>
+
+    </div>
+  );
 }

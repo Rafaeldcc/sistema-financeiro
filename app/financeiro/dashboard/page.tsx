@@ -45,11 +45,11 @@ const [metas,setMetas] = useState<any[]>([]);
 
 useEffect(()=>{
 
-const unsubscribe = onAuthStateChanged(auth, async (user)=>{
-
-async function carregar(){
+const unsubscribe = onAuthStateChanged(auth, (user)=>{
 
 if(!user) return;
+
+async function carregar(){
 
 /* 🔥 TRANSAÇÕES FILTRADAS */
 

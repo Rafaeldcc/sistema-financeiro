@@ -31,10 +31,10 @@ export default function Entradas() {
   // ===============================
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
-  }, [user, loading]);
+  if (!loading && !user) {
+    router.push("/financeiro/login");
+  }
+}, [user, loading]);
 
   if (loading) {
     return <p>Carregando...</p>;

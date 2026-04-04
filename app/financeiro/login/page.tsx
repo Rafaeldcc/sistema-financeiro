@@ -2,16 +2,18 @@
 
 import { auth } from "@/lib/auth";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 export default function Login(){
+
+  const router = useRouter();
 
   async function loginGoogle(){
     try{
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
 
-      // redireciona depois do login
-      window.location.href = "/financeiro/dashboard";
+      router.push("/financeiro/dashboard");
 
     }catch(e){
       console.error(e);

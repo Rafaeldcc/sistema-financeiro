@@ -5,7 +5,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-br">
-      <body className="bg-[#0B0F1A] text-white font-sans">
+      <body className="bg-[#0B0F1A] text-white">
         {children}
       </body>
     </html>

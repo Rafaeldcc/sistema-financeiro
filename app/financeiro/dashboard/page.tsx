@@ -182,7 +182,9 @@ setEvolucao(listaMov.map(mov=>{
 if(mov.tipo==="entrada") saldoTemp+=mov.valor;
 if(mov.tipo==="saida") saldoTemp-=mov.valor;
 
-const data = mov.createdAt?.toDate?.();
+const data = mov.createdAt?.toDate
+? mov.createdAt.toDate()
+: null;
 
 return {
 data:data ? data.toLocaleDateString("pt-BR"):"",
@@ -258,7 +260,7 @@ setAlertasIA(alertas);
 
 }
 
-carregar();
+carregar().catch(console.error);
 
 });
 
@@ -314,9 +316,11 @@ R$ {Number(conta.saldo).toFixed(2)}
 
 {metas.map((m)=>{
 
-const progresso = m.tipo === "economia"
+const progresso = m.valor
+? (m.tipo === "economia"
 ? (saldo / m.valor) * 100
-: (saidas / m.valor) * 100;
+: (saidas / m.valor) * 100)
+: 0;
 
 return(
 <div key={m.id} className="bg-[#111827] p-4 rounded-xl mb-3">

@@ -11,6 +11,8 @@ query,
 where
 } from "firebase/firestore";
 
+import { onAuthStateChanged } from "firebase/auth";
+
 import {
 PieChart,
 Pie,
@@ -39,18 +41,21 @@ const [previsao,setPrevisao] = useState<any>(null);
 const [alertasIA,setAlertasIA] = useState<string[]>([]);
 const [contas,setContas] = useState<any[]>([]);
 const [patrimonioTotal,setPatrimonioTotal] = useState(0);
+const [metas,setMetas] = useState<any[]>([]);
 
 useEffect(()=>{
 
+const unsubscribe = onAuthStateChanged(auth, async (user)=>{
+
 async function carregar(){
 
-if(!auth.currentUser) return;
+if(!user) return;
 
 /* 🔥 TRANSAÇÕES FILTRADAS */
 
 const q = query(
 collection(db,"transacoes"),
-where("userId","==",auth.currentUser.uid)
+where("userId","==",user.uid)
 );
 
 const snapshot = await getDocs(q);
@@ -59,7 +64,7 @@ const snapshot = await getDocs(q);
 
 const qContas = query(
 collection(db,"contas"),
-where("userId","==",auth.currentUser.uid)
+where("userId","==",user.uid)
 );
 
 const contasSnap = await getDocs(qContas);
@@ -80,6 +85,26 @@ listaContas.forEach((c)=>{
 patrimonio += Number(c.saldo) || 0;
 });
 setPatrimonioTotal(patrimonio);
+
+/* 🔥 METAS (NOVO) */
+
+const qMetas = query(
+collection(db,"metas"),
+where("userId","==",user.uid)
+);
+
+const metasSnap = await getDocs(qMetas);
+
+const listaMetas:any[] = [];
+
+metasSnap.forEach((doc)=>{
+listaMetas.push({
+id:doc.id,
+...doc.data()
+});
+});
+
+setMetas(listaMetas);
 
 /* 🔥 TRANSAÇÕES */
 
@@ -143,9 +168,13 @@ percentual: totalGastos
 }))
 );
 
-/* EVOLUÇÃO */
+/* EVOLUÇÃO (CORRIGIDO) */
 
-listaMov.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+listaMov.sort((a,b)=>{
+const aTime = a.createdAt?.seconds || 0;
+const bTime = b.createdAt?.seconds || 0;
+return aTime - bTime;
+});
 
 let saldoTemp = 0;
 
@@ -182,9 +211,10 @@ gastosMesAtual += mov.valor;
 
 setComparacao({ atual:gastosMesAtual });
 
-/* PREVISÃO */
+/* PREVISÃO (PROFISSIONAL) */
 
-const diasRestantes = 30;
+const ultimoDia = new Date(agora.getFullYear(), agora.getMonth()+1, 0).getDate();
+const diasRestantes = ultimoDia - agora.getDate();
 
 const mediaGasto = totalSaidas / (agora.getDate() || 1);
 
@@ -205,7 +235,23 @@ alertas.push("🚨 Você está gastando mais do que ganha");
 }
 
 if(totalSaidas > totalEntradas * 0.9){
-alertas.push("⚠️ Seus gastos estão muito altos");
+alertas.push("⚠️ Seus gastos estão no limite");
+}
+
+Object.keys(mapa).forEach((cat)=>{
+const gasto = mapa[cat];
+
+if(gasto > totalSaidas * 0.4){
+alertas.push(`💸 Você está gastando muito com ${cat}`);
+}
+});
+
+if(listaMov.length > 20){
+alertas.push("📊 Alto volume de transações — revise seus gastos impulsivos");
+}
+
+if(previsaoFinal < 0){
+alertas.push("🔮 Se continuar assim, você ficará no negativo");
 }
 
 setAlertasIA(alertas);
@@ -213,6 +259,10 @@ setAlertasIA(alertas);
 }
 
 carregar();
+
+});
+
+return ()=> unsubscribe();
 
 },[]);
 
@@ -259,6 +309,30 @@ R$ {Number(conta.saldo).toFixed(2)}
 ))}
 </div>
 )}
+
+{/* METAS (NOVO) */}
+
+{metas.map((m)=>{
+
+const progresso = m.tipo === "economia"
+? (saldo / m.valor) * 100
+: (saidas / m.valor) * 100;
+
+return(
+<div key={m.id} className="bg-[#111827] p-4 rounded-xl mb-3">
+<p>{m.tipo} - R$ {m.valor}</p>
+
+<div className="bg-gray-700 h-2 rounded mt-2">
+<div
+className="bg-green-500 h-2 rounded"
+style={{ width: `${Math.min(progresso,100)}%` }}
+/>
+</div>
+
+</div>
+);
+
+})}
 
 {/* ALERTAS */}
 

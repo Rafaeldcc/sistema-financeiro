@@ -14,16 +14,12 @@ where
 import { onAuthStateChanged } from "firebase/auth";
 
 import {
-PieChart,
-Pie,
-Cell,
-Tooltip,
+ResponsiveContainer,
 BarChart,
 Bar,
 XAxis,
 YAxis,
-CartesianGrid,
-ResponsiveContainer,
+Tooltip,
 LineChart,
 Line
 } from "recharts";
@@ -47,11 +43,13 @@ useEffect(()=>{
 
 const unsubscribe = onAuthStateChanged(auth, (user)=>{
 
-if(!user) return;
+if(!user?.uid) return;
 
 async function carregar(){
 
-/* 🔥 TRANSAÇÕES FILTRADAS */
+try{
+
+/* 🔥 TRANSAÇÕES */
 
 const q = query(
 collection(db,"transacoes"),
@@ -86,7 +84,7 @@ patrimonio += Number(c.saldo) || 0;
 });
 setPatrimonioTotal(patrimonio);
 
-/* 🔥 METAS (NOVO) */
+/* 🔥 METAS */
 
 const qMetas = query(
 collection(db,"metas"),
@@ -106,7 +104,7 @@ id:doc.id,
 
 setMetas(listaMetas);
 
-/* 🔥 TRANSAÇÕES */
+/* 🔥 PROCESSAMENTO */
 
 let totalEntradas = 0;
 let totalSaidas = 0;
@@ -157,7 +155,9 @@ value:mapa[c]
 
 /* RELATÓRIO */
 
-const totalGastos = Object.values(mapa).reduce((a:any,b:any)=>a+b,0);
+const totalGastos = Object.values(mapa).length
+? Object.values(mapa).reduce((a:any,b:any)=>a+b,0)
+: 0;
 
 setRelatorio(
 Object.keys(mapa).map(c=>({
@@ -168,7 +168,7 @@ percentual: totalGastos
 }))
 );
 
-/* EVOLUÇÃO (CORRIGIDO) */
+/* EVOLUÇÃO */
 
 listaMov.sort((a,b)=>{
 const aTime = a.createdAt?.seconds || 0;
@@ -179,6 +179,7 @@ return aTime - bTime;
 let saldoTemp = 0;
 
 setEvolucao(listaMov.map(mov=>{
+
 if(mov.tipo==="entrada") saldoTemp+=mov.valor;
 if(mov.tipo==="saida") saldoTemp-=mov.valor;
 
@@ -190,6 +191,7 @@ return {
 data:data ? data.toLocaleDateString("pt-BR"):"",
 saldo:saldoTemp
 };
+
 }));
 
 /* COMPARAÇÃO */
@@ -203,7 +205,10 @@ let gastosMesAtual = 0;
 listaMov.forEach((mov)=>{
 if(mov.tipo !== "saida") return;
 
-const data = mov.createdAt?.toDate?.();
+const data = mov.createdAt?.toDate
+? mov.createdAt.toDate()
+: null;
+
 if(!data) return;
 
 if(data.getMonth() === mesAtual && data.getFullYear() === anoAtual){
@@ -213,7 +218,7 @@ gastosMesAtual += mov.valor;
 
 setComparacao({ atual:gastosMesAtual });
 
-/* PREVISÃO (PROFISSIONAL) */
+/* PREVISÃO */
 
 const ultimoDia = new Date(agora.getFullYear(), agora.getMonth()+1, 0).getDate();
 const diasRestantes = ultimoDia - agora.getDate();
@@ -228,7 +233,7 @@ previsao:previsaoFinal.toFixed(2),
 media:mediaGasto.toFixed(2)
 });
 
-/* IA ALERTAS */
+/* IA */
 
 const alertas:string[] = [];
 
@@ -244,23 +249,27 @@ Object.keys(mapa).forEach((cat)=>{
 const gasto = mapa[cat];
 
 if(gasto > totalSaidas * 0.4){
-alertas.push(`💸 Você está gastando muito com ${cat}`);
+alertas.push(`💸 Muito gasto com ${cat}`);
 }
 });
 
 if(listaMov.length > 20){
-alertas.push("📊 Alto volume de transações — revise seus gastos impulsivos");
+alertas.push("📊 Muitas transações detectadas");
 }
 
 if(previsaoFinal < 0){
-alertas.push("🔮 Se continuar assim, você ficará no negativo");
+alertas.push("🔮 Risco de saldo negativo");
 }
 
 setAlertasIA(alertas);
 
+}catch(e){
+console.error("ERRO DASHBOARD:", e);
 }
 
-carregar().catch(console.error);
+}
+
+carregar();
 
 });
 
@@ -268,16 +277,9 @@ return ()=> unsubscribe();
 
 },[]);
 
-const cores=["#6366F1","#22C55E","#EF4444","#F59E0B","#06B6D4"];
-
 const dadosBar=[
 { name:"Entradas", valor:entradas },
 { name:"Saídas", valor:saidas }
-];
-
-const dadosSaldo=[
-{ name:"Saldo", value:saldo },
-{ name:"Saídas", value:saidas }
 ];
 
 return(
@@ -288,8 +290,6 @@ return(
 Dashboard Financeiro
 </h1>
 
-{/* PATRIMÔNIO */}
-
 <div className="bg-[#111827] p-6 rounded-xl mb-6">
 <h2 className="text-gray-400">Patrimônio total</h2>
 <p className="text-3xl text-purple-400 font-bold">
@@ -297,22 +297,11 @@ R$ {patrimonioTotal.toFixed(2)}
 </p>
 </div>
 
-{/* CONTAS */}
-
-{contas.length > 0 && (
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
 {contas.map((conta)=>(
-<div key={conta.id} className="bg-[#111827] p-6 rounded-xl">
-<h2 className="text-gray-400">{conta.nome}</h2>
-<p className="text-xl text-purple-400">
-R$ {Number(conta.saldo).toFixed(2)}
-</p>
+<div key={conta.id}>
+{conta.nome} - R$ {Number(conta.saldo).toFixed(2)}
 </div>
 ))}
-</div>
-)}
-
-{/* METAS (NOVO) */}
 
 {metas.map((m)=>{
 
@@ -323,54 +312,32 @@ const progresso = m.valor
 : 0;
 
 return(
-<div key={m.id} className="bg-[#111827] p-4 rounded-xl mb-3">
-<p>{m.tipo} - R$ {m.valor}</p>
-
-<div className="bg-gray-700 h-2 rounded mt-2">
-<div
-className="bg-green-500 h-2 rounded"
-style={{ width: `${Math.min(progresso,100)}%` }}
-/>
-</div>
-
+<div key={m.id}>
+{m.tipo} - {Math.min(progresso,100).toFixed(0)}%
 </div>
 );
 
 })}
 
-{/* ALERTAS */}
-
 {alertasIA.map((a,i)=>(
-<p key={i} className="text-yellow-400 mb-2">{a}</p>
+<p key={i}>{a}</p>
 ))}
-
-{/* CARDS */}
-
-<div className="grid grid-cols-3 gap-6 mb-10">
-<div>Entradas: R$ {entradas}</div>
-<div>Saídas: R$ {saidas}</div>
-<div>Saldo: R$ {saldo}</div>
-</div>
-
-{/* GRÁFICO */}
 
 <ResponsiveContainer width="100%" height={250}>
 <BarChart data={dadosBar}>
 <XAxis dataKey="name"/>
 <YAxis/>
 <Tooltip/>
-<Bar dataKey="valor" fill="#6366F1"/>
+<Bar dataKey="valor"/>
 </BarChart>
 </ResponsiveContainer>
-
-{/* EVOLUÇÃO */}
 
 <ResponsiveContainer width="100%" height={300}>
 <LineChart data={evolucao}>
 <XAxis dataKey="data"/>
 <YAxis/>
 <Tooltip/>
-<Line dataKey="saldo" stroke="#22C55E"/>
+<Line dataKey="saldo"/>
 </LineChart>
 </ResponsiveContainer>
 

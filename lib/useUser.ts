@@ -1,19 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { onAuthChange } from "./auth";
+import { auth } from "./auth";
+import { onAuthStateChanged, User } from "firebase/auth";
 
 export function useUser() {
-  const [user, setUser] = useState<any>(null);
+
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthChange((u) => {
-      setUser(u);
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
       setLoading(false);
     });
 
     return () => unsubscribe();
+
   }, []);
 
   return { user, loading };

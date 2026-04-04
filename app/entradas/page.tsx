@@ -16,49 +16,45 @@ export default function Entradas(){
   ];
 
   function salvar(){
-    const dados = {
-      tipo:"entrada",
-      categoria,
-      valor:Number(valor)
-    };
-
-    console.log("SALVANDO:", dados);
-
     alert("Entrada salva!");
     setCategoria("");
     setValor("");
   }
 
   return(
-    <div className="p-6 text-white">
+    <div className="min-h-screen flex items-center justify-center bg-[#0B0F1A] text-white">
 
-      <h1 className="text-2xl mb-4">Entrada</h1>
+      <div className="bg-[#111827] p-8 rounded-xl w-[350px]">
 
-      <select
-        className="w-full p-2 mb-3 bg-black border"
-        value={categoria}
-        onChange={(e)=>setCategoria(e.target.value)}
-      >
-        <option value="">Categoria</option>
-        {categorias.map(c=>(
-          <option key={c}>{c}</option>
-        ))}
-      </select>
+        <h1 className="text-xl mb-4 font-bold">💰 Nova Entrada</h1>
 
-      <input
-        type="number"
-        placeholder="Valor"
-        className="w-full p-2 mb-3 bg-black border"
-        value={valor}
-        onChange={(e)=>setValor(e.target.value)}
-      />
+        <select
+          className="w-full p-2 mb-3 rounded bg-[#0B0F1A] border border-gray-700"
+          value={categoria}
+          onChange={(e)=>setCategoria(e.target.value)}
+        >
+          <option value="">Categoria</option>
+          {categorias.map(c=>(
+            <option key={c}>{c}</option>
+          ))}
+        </select>
 
-      <button
-        onClick={salvar}
-        className="bg-green-600 px-6 py-2 rounded"
-      >
-        Salvar Entrada
-      </button>
+        <input
+          type="number"
+          placeholder="Valor"
+          className="w-full p-2 mb-4 rounded bg-[#0B0F1A] border border-gray-700"
+          value={valor}
+          onChange={(e)=>setValor(e.target.value)}
+        />
+
+        <button
+          onClick={salvar}
+          className="w-full bg-green-600 py-2 rounded hover:bg-green-700"
+        >
+          Salvar
+        </button>
+
+      </div>
 
     </div>
   );

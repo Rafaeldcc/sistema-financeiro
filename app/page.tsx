@@ -5,25 +5,33 @@ import Link from "next/link";
 export default function Home(){
 
   return (
-    <div className="p-6 text-white">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0B0F1A] to-[#111827] text-white">
 
-      <h1 className="text-2xl font-bold mb-6">
-        Sistema Financeiro
-      </h1>
+      <div className="bg-[#111827] p-10 rounded-2xl shadow-xl w-[350px] text-center">
 
-      <div className="flex gap-4">
+        <h1 className="text-3xl font-bold mb-6">
+          💰 Sistema Financeiro
+        </h1>
 
-        <Link href="/entradas">
-          <button className="bg-green-600 px-6 py-3 rounded">
-            + Entrada
-          </button>
-        </Link>
+        <p className="text-gray-400 mb-6">
+          Controle suas finanças de forma simples
+        </p>
 
-        <Link href="/saidas">
-          <button className="bg-red-600 px-6 py-3 rounded">
-            - Saída
-          </button>
-        </Link>
+        <div className="flex flex-col gap-4">
+
+          <Link href="/entradas">
+            <button className="w-full bg-green-600 py-3 rounded-lg hover:bg-green-700 transition text-lg font-semibold">
+              + Entrada
+            </button>
+          </Link>
+
+          <Link href="/saidas">
+            <button className="w-full bg-red-600 py-3 rounded-lg hover:bg-red-700 transition text-lg font-semibold">
+              - Saída
+            </button>
+          </Link>
+
+        </div>
 
       </div>
 
